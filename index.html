@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mykhailo Korotych — Founder / Full-Stack Product Engineer</title>
+  <meta name="description" content="Interactive portfolio of Mykhailo Korotych — founder and full-stack product engineer. Sayful, Brain Trainer, and a live GitHub activity cityscape." />
+  <meta name="theme-color" content="#030807" />
+  <meta property="og:title" content="Mykhailo Korotych — Founder / Full-Stack Product Engineer" />
+  <meta property="og:description" content="An interactive Ghost-in-the-Shell-style 3D portfolio. Two shipped products and a living GitHub activity cityscape." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23030807'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' fill='%2300ff9f' text-anchor='middle'%3E公%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <!-- boot screen -->
+  <div id="boot">
+    <div class="boot-inner">
+      <div class="boot-line" id="boot-text">ESTABLISHING CONNECTION…</div>
+      <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <header class="hud-head">
+      <div class="ident">
+        <div class="ident-name glitchable" data-text="KOROTYCH, MYKHAILO">KOROTYCH, MYKHAILO</div>
+        <div class="ident-sub">コロティチ・ミハイロ // FOUNDER · FULL-STACK PRODUCT ENGINEER</div>
+      </div>
+      <div class="sysinfo">
+        <div>NET: <span class="ok">LIVE</span></div>
+        <div id="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <nav class="hud-nav" id="nav">
+      <button class="nav-item active" data-station="0"><span class="nav-num">01</span> IDENTITY</button>
+      <button class="nav-item" data-station="1"><span class="nav-num">02</span> PRODUCTS</button>
+      <button class="nav-item" data-station="2"><span class="nav-num">03</span> ACTIVITY</button>
+    </nav>
+
+    <aside class="station-card" id="station-card">
+      <div class="sc-title" id="sc-title">IDENTITY</div>
+      <div class="sc-body" id="sc-body"></div>
+    </aside>
+
+    <footer class="hud-foot">
+      <div class="ticker-wrap"><span class="ticker-label">GHOST//LOG</span><span id="ticker">syncing github activity…</span></div>
+      <div class="links">
+        <a href="https://github.com/MikeKorotych" target="_blank" rel="noopener">GITHUB</a>
+        <a href="https://t.me/kievchanen" target="_blank" rel="noopener">TELEGRAM</a>
+        <a href="https://sayful.app" target="_blank" rel="noopener">SAYFUL</a>
+        <a href="https://app-brain-trainer.vercel.app" target="_blank" rel="noopener">BRAIN&nbsp;TRAINER</a>
+        <a href="mailto:mixakievchanen@gmail.com">EMAIL</a>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

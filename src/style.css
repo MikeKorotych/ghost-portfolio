@@ -1,0 +1,241 @@
+:root {
+  --bg: #030807;
+  --ink: #cfe8dd;
+  --dim: #6f9486;
+  --phos: #00ff9f;
+  --phos-soft: #35d0ba;
+  --warn: #ff6a39;
+  --line: rgba(0, 255, 159, 0.28);
+  --panel: rgba(3, 12, 10, 0.82);
+  --mono: "Share Tech Mono", ui-monospace, monospace;
+  --jp: "Noto Sans JP", sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  overflow: hidden;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+/* ---------- boot screen ---------- */
+#boot {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.7s ease;
+}
+#boot.done { opacity: 0; pointer-events: none; }
+.boot-inner { width: min(420px, 80vw); }
+.boot-line {
+  color: var(--phos);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  margin-bottom: 14px;
+  text-shadow: 0 0 8px rgba(0, 255, 159, 0.6);
+  min-height: 1.2em;
+}
+.boot-bar {
+  height: 3px;
+  background: rgba(0, 255, 159, 0.15);
+  overflow: hidden;
+}
+.boot-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--phos);
+  box-shadow: 0 0 12px rgba(0, 255, 159, 0.8);
+  transition: width 0.25s ease;
+}
+
+/* ---------- HUD chrome ---------- */
+.hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+.hud a, .hud button { pointer-events: auto; }
+
+.hud-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+}
+.hud-corner.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
+.hud-corner.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
+.hud-corner.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+.hud-corner.br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
+
+.hud-head {
+  position: absolute;
+  top: 26px;
+  left: 34px;
+  right: 34px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.ident-name {
+  font-size: clamp(16px, 2.2vw, 24px);
+  letter-spacing: 0.22em;
+  color: var(--ink);
+  text-shadow: 0 0 14px rgba(0, 255, 159, 0.35);
+}
+.ident-sub {
+  margin-top: 6px;
+  font-family: var(--jp);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--dim);
+}
+.sysinfo {
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  line-height: 1.8;
+}
+.sysinfo .ok { color: var(--phos); }
+
+/* ---------- nav ---------- */
+.hud-nav {
+  position: absolute;
+  left: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.nav-item {
+  background: none;
+  border: 1px solid transparent;
+  border-left: 2px solid rgba(0, 255, 159, 0.25);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  padding: 8px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.25s, border-color 0.25s, background 0.25s, transform 0.25s;
+}
+.nav-item .nav-num { color: rgba(0, 255, 159, 0.5); margin-right: 8px; }
+.nav-item:hover { color: var(--ink); transform: translateX(3px); }
+.nav-item.active {
+  color: var(--phos);
+  border-left-color: var(--phos);
+  background: rgba(0, 255, 159, 0.06);
+  text-shadow: 0 0 10px rgba(0, 255, 159, 0.5);
+}
+
+/* ---------- station card ---------- */
+.station-card {
+  position: absolute;
+  right: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(340px, 78vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  backdrop-filter: blur(6px);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.sc-title {
+  color: var(--phos);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(0, 255, 159, 0.45);
+}
+.sc-body { font-size: 12.5px; line-height: 1.75; color: var(--ink); }
+.sc-body .dim { color: var(--dim); }
+.sc-body .num { color: var(--phos); }
+.sc-body a { color: var(--phos-soft); text-decoration: none; border-bottom: 1px dotted rgba(53, 208, 186, 0.5); }
+.sc-body a:hover { color: var(--phos); }
+.sc-body .row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px dashed rgba(0,255,159,0.14); padding: 5px 0; }
+.sc-body .row:first-child { border-top: 0; }
+
+/* ---------- footer ---------- */
+.hud-foot {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+.ticker-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--dim);
+  border: 1px solid rgba(0, 255, 159, 0.16);
+  background: rgba(3, 12, 10, 0.6);
+  padding: 7px 12px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-label { color: var(--warn); flex-shrink: 0; }
+#ticker { overflow: hidden; text-overflow: ellipsis; }
+.links { display: flex; gap: 18px; flex-shrink: 0; }
+.links a {
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 0.25s, text-shadow 0.25s;
+}
+.links a:hover { color: var(--phos); text-shadow: 0 0 10px rgba(0, 255, 159, 0.6); }
+
+/* ---------- glitch ---------- */
+.glitchable { position: relative; }
+.glitching::before,
+.glitching::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.glitching::before {
+  color: var(--warn);
+  transform: translate(2px, -1px);
+  clip-path: inset(20% 0 55% 0);
+  opacity: 0.85;
+}
+.glitching::after {
+  color: var(--phos-soft);
+  transform: translate(-2px, 1px);
+  clip-path: inset(60% 0 15% 0);
+  opacity: 0.85;
+}
+
+@media (max-width: 760px) {
+  .hud-nav { top: auto; bottom: 96px; transform: none; flex-direction: row; gap: 8px; left: 34px; right: 34px; }
+  .nav-item { padding: 6px 8px; font-size: 10px; letter-spacing: 0.12em; }
+  .station-card { top: auto; bottom: 150px; right: 34px; left: 34px; width: auto; transform: none; }
+  .links { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glitching::before, .glitching::after { display: none; }
+}
