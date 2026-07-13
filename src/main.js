@@ -486,24 +486,99 @@ const raycaster = new THREE.Raycaster();
 const tipEl = document.getElementById("tip");
 let tipXY = { x: 0, y: 0 };
 
+// ---- typewriter: wrap every character in a slot-preserving span ----
+let twSeq = 0; // supersedes the previous typing run
+let twTimer = null;
+
+function wrapChars(root, spans) {
+  [...root.childNodes].forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const frag = document.createDocumentFragment();
+      for (const ch of node.textContent) {
+        const s = document.createElement("span");
+        s.className = "tw";
+        s.textContent = ch;
+        frag.appendChild(s);
+        spans.push(s);
+      }
+      node.replaceWith(frag);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      wrapChars(node, spans);
+    }
+  });
+}
+
+function typewrite() {
+  const seq = ++twSeq;
+  clearInterval(twTimer);
+  const title = document.getElementById("sc-title");
+  const body = document.getElementById("sc-body");
+  const titleSpans = [];
+  const bodySpans = [];
+  wrapChars(title, titleSpans);
+  wrapChars(body, bodySpans);
+
+  if (reduceMotion) {
+    [...titleSpans, ...bodySpans].forEach((s) => s.classList.add("on"));
+    return;
+  }
+
+  const caret = document.createElement("span");
+  caret.className = "tw-caret";
+  title.appendChild(caret);
+
+  let ti = 0;
+  let bi = 0;
+  twTimer = setInterval(() => {
+    if (seq !== twSeq) { clearInterval(twTimer); return; }
+    if (ti < titleSpans.length) {
+      // the title types deliberately, one glyph at a time
+      titleSpans[ti].classList.add("on");
+      titleSpans[ti].after(caret);
+      ti += 1;
+      return;
+    }
+    // the body streams in fast, several glyphs per tick; the caret retires
+    // once the headline is done
+    caret.remove();
+    for (let n = 0; n < 4 && bi < bodySpans.length; n++, bi++) {
+      bodySpans[bi].classList.add("on");
+    }
+    if (bi >= bodySpans.length) clearInterval(twTimer);
+  }, 26);
+}
+
 function renderCard(index) {
   const card = STATION_CARDS[index];
   document.getElementById("sc-title").textContent = card.title;
   document.getElementById("sc-body").innerHTML = card.body;
-  document.querySelectorAll(".sc-body .row, .sc-body p").forEach((el, i) => {
-    el.style.setProperty("--rd", `${0.08 + i * 0.07}s`);
-  });
   if (index === 2) fillActivityStats();
+  typewrite();
 }
 
+let cardHeightClear = null;
 function swapCard(index) {
   const inner = document.getElementById("sc-inner");
+  const cardEl = document.getElementById("station-card");
   inner.classList.remove("in");
   inner.classList.add("out");
   setTimeout(() => {
+    // FLIP the card height: lock the old height, swap content, measure the
+    // new height, then let the CSS transition glide between the two
+    clearTimeout(cardHeightClear); // a rapid re-swap must not un-pin mid-glide
+    const h1 = cardEl.offsetHeight;
     renderCard(index);
+    cardEl.style.height = "auto";
+    const h2 = cardEl.offsetHeight;
+    if (!reduceMotion && Math.abs(h2 - h1) > 1) {
+      cardEl.style.height = `${h1}px`;
+      void cardEl.offsetWidth;
+      cardEl.style.height = `${h2}px`;
+      cardHeightClear = setTimeout(() => { cardEl.style.height = ""; }, 460);
+    } else {
+      cardEl.style.height = "";
+    }
     inner.classList.remove("out");
-    // restart the entrance animation
     void inner.offsetWidth;
     inner.classList.add("in");
   }, reduceMotion ? 0 : 210);
@@ -741,12 +816,14 @@ function beginIntro() {
     growCity();
   } });
 
-  // HUD elements slide in (staggered via --d in CSS)
+  // HUD elements slide in (staggered via --d in CSS); retype the card now
+  // that it is actually visible
   setTimeout(() => {
     document.body.classList.remove("pre-intro");
     hudReady = true;
     const inner = document.getElementById("sc-inner");
     inner.classList.add("in");
+    renderCard(station);
   }, reduceMotion ? 0 : 700);
 }
 

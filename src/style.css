@@ -162,7 +162,8 @@ body.pre-intro .hud-item { opacity: 0; transform: translateY(14px); }
   padding: 18px 20px;
   backdrop-filter: blur(6px);
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  overflow: hidden;
+  transition: opacity 0.4s ease, height 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sc-title {
   color: var(--phos);
@@ -187,15 +188,21 @@ body.pre-intro .hud-item { opacity: 0; transform: translateY(14px); }
   from { transform: translateX(-30px) rotate(-2.5deg) scale(0.97); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-.sc-body .row, .sc-body p {
-  opacity: 0;
-  animation: rowIn 0.4s ease forwards;
-  animation-delay: var(--rd, 0s);
+/* typewriter: every character pre-occupies its slot, so the card's height
+   is final before a single character is "typed" */
+.tw { visibility: hidden; }
+.tw.on { visibility: visible; }
+.tw-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 2px;
+  background: var(--phos);
+  vertical-align: text-bottom;
+  box-shadow: 0 0 8px rgba(0, 255, 159, 0.7);
+  animation: caretBlink 0.7s steps(1) infinite;
 }
-@keyframes rowIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
+@keyframes caretBlink { 50% { opacity: 0; } }
 
 /* ---------- city legend & tooltip ---------- */
 #city-legend {
