@@ -68,6 +68,14 @@ html, body {
 .hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 .hud a, .hud button { pointer-events: auto; }
 
+/* staggered HUD entrance, released by removing .pre-intro from <body> */
+.hud-item {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.7s ease var(--d, 0s), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s);
+}
+body.pre-intro .hud-item { opacity: 0; transform: translateY(14px); }
+
 .hud-corner {
   position: absolute;
   width: 26px;
@@ -171,6 +179,69 @@ html, body {
 .sc-body .row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px dashed rgba(0,255,159,0.14); padding: 5px 0; }
 .sc-body .row:first-child { border-top: 0; }
 
+/* deck-style card swap */
+.sc-inner { transition: transform 0.22s ease, opacity 0.22s ease; }
+.sc-inner.out { transform: translateX(30px) rotate(2.5deg) scale(0.97); opacity: 0; }
+.sc-inner.in { animation: cardIn 0.34s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes cardIn {
+  from { transform: translateX(-30px) rotate(-2.5deg) scale(0.97); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.sc-body .row, .sc-body p {
+  opacity: 0;
+  animation: rowIn 0.4s ease forwards;
+  animation-delay: var(--rd, 0s);
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- city legend & tooltip ---------- */
+#city-legend {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--dim);
+  background: rgba(3, 12, 10, 0.72);
+  border: 1px solid rgba(0, 255, 159, 0.2);
+  padding: 8px 14px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+body.station-2 #city-legend { opacity: 1; }
+.legend-cube {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background: var(--phos);
+  box-shadow: 0 0 8px rgba(0, 255, 159, 0.8);
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+
+#tip {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  background: rgba(3, 14, 11, 0.92);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  padding: 7px 10px;
+  transform: translate(14px, -50%);
+  white-space: nowrap;
+}
+#tip .num { color: var(--phos); }
+#tip .dim { color: var(--dim); }
+
 /* ---------- footer ---------- */
 .hud-foot {
   position: absolute;
@@ -178,28 +249,12 @@ html, body {
   right: 34px;
   bottom: 24px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 24px;
   font-size: 11px;
   letter-spacing: 0.16em;
 }
-.ticker-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  color: var(--dim);
-  border: 1px solid rgba(0, 255, 159, 0.16);
-  background: rgba(3, 12, 10, 0.6);
-  padding: 7px 12px;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.ticker-label { color: var(--warn); flex-shrink: 0; }
-#ticker { overflow: hidden; text-overflow: ellipsis; }
-.links { display: flex; gap: 18px; flex-shrink: 0; }
+.links { display: flex; gap: 26px; flex-shrink: 0; }
 .links a {
   color: var(--dim);
   text-decoration: none;
@@ -230,10 +285,11 @@ html, body {
 }
 
 @media (max-width: 760px) {
-  .hud-nav { top: auto; bottom: 96px; transform: none; flex-direction: row; gap: 8px; left: 34px; right: 34px; }
+  .hud-nav { top: auto; bottom: 66px; transform: none; flex-direction: row; gap: 8px; left: 34px; right: 34px; }
   .nav-item { padding: 6px 8px; font-size: 10px; letter-spacing: 0.12em; }
-  .station-card { top: auto; bottom: 150px; right: 34px; left: 34px; width: auto; transform: none; }
-  .links { display: none; }
+  .station-card { top: auto; bottom: 120px; right: 34px; left: 34px; width: auto; transform: none; }
+  .links { gap: 14px; font-size: 10px; }
+  #city-legend { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mykhailo Korotych — Founder / Full-Stack Product Engineer</title>
-  <meta name="description" content="Interactive portfolio of Mykhailo Korotych — founder and full-stack product engineer. Sayful, Brain Trainer, and a live GitHub activity cityscape." />
+  <title>Mykhailo Korotych — Full-Stack Product Engineer</title>
+  <meta name="description" content="Interactive portfolio of Mykhailo Korotych — full-stack product engineer. Sayful, Brain Trainer, and a live GitHub activity cityscape." />
   <meta name="theme-color" content="#030807" />
-  <meta property="og:title" content="Mykhailo Korotych — Founder / Full-Stack Product Engineer" />
+  <meta property="og:title" content="Mykhailo Korotych — Full-Stack Product Engineer" />
   <meta property="og:description" content="An interactive Ghost-in-the-Shell-style 3D portfolio. Two shipped products and a living GitHub activity cityscape." />
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23030807'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' fill='%2300ff9f' text-anchor='middle'%3E公%3C/text%3E%3C/svg%3E" />
 </head>
-<body>
+<body class="pre-intro">
   <canvas id="scene"></canvas>
 
   <!-- boot screen -->
@@ -25,6 +25,9 @@
     </div>
   </div>
 
+  <!-- hover tooltip for the contribution city -->
+  <div id="tip" hidden></div>
+
   <!-- HUD -->
   <div class="hud">
     <div class="hud-corner tl"></div>
@@ -32,10 +35,10 @@
     <div class="hud-corner bl"></div>
     <div class="hud-corner br"></div>
 
-    <header class="hud-head">
+    <header class="hud-head hud-item" style="--d: 0.1s">
       <div class="ident">
         <div class="ident-name glitchable" data-text="KOROTYCH, MYKHAILO">KOROTYCH, MYKHAILO</div>
-        <div class="ident-sub">コロティチ・ミハイロ // FOUNDER · FULL-STACK PRODUCT ENGINEER</div>
+        <div class="ident-sub">FULL-STACK PRODUCT ENGINEER</div>
       </div>
       <div class="sysinfo">
         <div>NET: <span class="ok">LIVE</span></div>
@@ -43,19 +46,24 @@
       </div>
     </header>
 
-    <nav class="hud-nav" id="nav">
+    <nav class="hud-nav hud-item" id="nav" style="--d: 0.35s">
       <button class="nav-item active" data-station="0"><span class="nav-num">01</span> IDENTITY</button>
       <button class="nav-item" data-station="1"><span class="nav-num">02</span> PRODUCTS</button>
       <button class="nav-item" data-station="2"><span class="nav-num">03</span> ACTIVITY</button>
     </nav>
 
-    <aside class="station-card" id="station-card">
-      <div class="sc-title" id="sc-title">IDENTITY</div>
-      <div class="sc-body" id="sc-body"></div>
+    <aside class="station-card hud-item" id="station-card" style="--d: 0.55s">
+      <div class="sc-inner" id="sc-inner">
+        <div class="sc-title" id="sc-title"></div>
+        <div class="sc-body" id="sc-body"></div>
+      </div>
     </aside>
 
-    <footer class="hud-foot">
-      <div class="ticker-wrap"><span class="ticker-label">GHOST//LOG</span><span id="ticker">syncing github activity…</span></div>
+    <div id="city-legend" class="hud-item" style="--d: 0s">
+      <span class="legend-cube"></span> GITHUB CONTRIBUTIONS · LAST 365 DAYS · ONE TOWER = ONE DAY · HOVER TO INSPECT
+    </div>
+
+    <footer class="hud-foot hud-item" style="--d: 0.75s">
       <div class="links">
         <a href="https://github.com/MikeKorotych" target="_blank" rel="noopener">GITHUB</a>
         <a href="https://t.me/kievchanen" target="_blank" rel="noopener">TELEGRAM</a>
