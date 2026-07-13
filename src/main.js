@@ -332,7 +332,7 @@ function buildCity(contributions) {
 
   contributions.forEach((c, i) => {
     const day = i % days;
-    const glow = c.count === 0 ? 0.04 : 0.16 + 0.6 * Math.pow(c.count / maxCount, 0.75);
+    const glow = c.count === 0 ? 0.04 : 0.14 + 0.5 * Math.pow(c.count / maxCount, 0.75);
     color.copy(PHOS).multiplyScalar(glow).lerp(PHOS_SOFT, day / days / 3);
     cityColors.push(color.clone());
     mesh.setColorAt(i, color);
@@ -348,8 +348,56 @@ function growCity() {
   tween({
     dur: 2.2,
     update: (e) => { cityGrow = e; refreshCityMatrices(); },
-    done: () => { cityGrowing = false; cityGrow = 1; refreshCityMatrices(); },
+    done: () => {
+      cityGrowing = false;
+      cityGrow = 1;
+      refreshCityMatrices();
+      buildCityEdges();
+    },
   });
+}
+
+// Dark edge wireframe over every tower: without it the high-activity ridge
+// blooms into one solid glow and the individual days disappear. One merged
+// LineSegments (12 edges x 364 towers) built once the city is fully grown.
+let cityEdges = null;
+function buildCityEdges() {
+  if (!cityMesh) return;
+  if (cityEdges) {
+    scene.remove(cityEdges);
+    cityEdges.geometry.dispose();
+    cityEdges.material.dispose();
+  }
+  const { weeks, days, cell, gap } = CITY;
+  const step = cell + gap;
+  const originX = (-(weeks - 1) / 2) * step;
+  const originZ = (-(days - 1) / 2) * step;
+  const heights = cityMesh.userData.heights;
+  const inflate = 0.006; // keep lines just off the faces to avoid z-fighting
+  const half = cell / 2 + inflate;
+  const pts = [];
+  for (let i = 0; i < weeks * days; i++) {
+    const week = Math.floor(i / days);
+    const day = i % days;
+    const cx = originX + week * step;
+    const cz = originZ + day * step;
+    const x0 = cx - half, x1 = cx + half;
+    const z0 = cz - half, z1 = cz + half;
+    const y0 = 0.002, y1 = heights[i] + inflate;
+    // top rectangle
+    pts.push(x0, y1, z0, x1, y1, z0,  x1, y1, z0, x1, y1, z1,
+             x1, y1, z1, x0, y1, z1,  x0, y1, z1, x0, y1, z0);
+    // verticals
+    pts.push(x0, y0, z0, x0, y1, z0,  x1, y0, z0, x1, y1, z0,
+             x1, y0, z1, x1, y1, z1,  x0, y0, z1, x0, y1, z1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  const mat = new THREE.LineBasicMaterial({ color: 0x02150e, transparent: true, opacity: 0 });
+  cityEdges = new THREE.LineSegments(geo, mat);
+  cityEdges.position.copy(cityMesh.position);
+  scene.add(cityEdges);
+  tween({ dur: 0.8, update: (e) => { mat.opacity = 0.85 * e; } });
 }
 
 async function loadContributions() {
