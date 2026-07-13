@@ -130,42 +130,102 @@ grid.material.opacity = 0;
 scene.add(grid);
 
 // ────────────────────────────────────────────────────────────────────────────
-// Wireframe "network" set dressing — GITS title-sequence rings
 // ────────────────────────────────────────────────────────────────────────────
 
+// Tattoo-style wireframe portrait: flat geometric line art (like a
+// fine-line deer tattoo), mirrored from a half-face vertex map. The pupils
+// track the cursor and the whole head turns slightly toward it.
 const dressing = new THREE.Group();
+dressing.position.set(0, 12.2, -14);
 dressing.scale.setScalar(0.001);
 scene.add(dressing);
 
-const globeMat = new THREE.MeshBasicMaterial({ color: 0x0f8f6c, wireframe: true, transparent: true, opacity: 0.5 });
-const globe = new THREE.Mesh(new THREE.IcosahedronGeometry(5.2, 2), globeMat);
-globe.position.set(0, 9.4, -14);
-dressing.add(globe);
+const FACE_SCALE = 2.1;
+// half-face polylines, [x, y] pairs — mirrored across x=0
+const FACE_HALF = [
+  // face outline
+  [[0, -1.62], [0.36, -1.52], [0.74, -1.22], [0.97, -0.66], [1.06, -0.05], [1.09, 0.5], [1.0, 0.98], [0.78, 1.28], [0.4, 1.5], [0, 1.58]],
+  // hair silhouette + facets
+  [[1.0, 0.98], [0.88, 1.5], [0.52, 1.82], [0, 1.94]],
+  [[0.78, 1.28], [0.52, 1.82]],
+  [[0.4, 1.5], [0.22, 1.88]],
+  // brow
+  [[0.16, 0.34], [0.52, 0.42], [0.88, 0.3]],
+  // eye (closed almond)
+  [[0.24, 0.06], [0.4, 0.17], [0.62, 0.15], [0.74, 0.03], [0.56, -0.08], [0.32, -0.07], [0.24, 0.06]],
+  // nose side + base
+  [[0.1, 0.34], [0.17, -0.32], [0.31, -0.5], [0.14, -0.64], [0, -0.66]],
+  [[0.17, -0.32], [0, -0.66]],
+  // lips
+  [[0, -0.86], [0.26, -0.82], [0.47, -0.9]],
+  [[0.47, -0.9], [0, -0.92]],
+  [[0.47, -0.9], [0.24, -1.06], [0, -1.08]],
+  // cheek / jaw facets
+  [[0.74, 0.03], [0.97, -0.66]],
+  [[0.31, -0.5], [0.74, -1.22]],
+  // chin facet
+  [[0, -1.2], [0.32, -1.32], [0.36, -1.52]],
+  // forehead facet
+  [[0.52, 0.42], [0.4, 1.5]],
+  // ear
+  [[1.09, 0.12], [1.2, -0.02], [1.06, -0.3]],
+  // neck
+  [[0.5, -1.44], [0.56, -1.98]],
+];
+// center-axis lines, drawn once
+const FACE_CENTER = [
+  [[0, -0.66], [0, -0.86]],
+  [[0, -1.08], [0, -1.2]],
+];
 
-const globeCore = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(2.1, 1),
-  new THREE.MeshBasicMaterial({ color: PHOS, wireframe: true, transparent: true, opacity: 0.85 })
-);
-globeCore.position.copy(globe.position);
-dressing.add(globeCore);
-
-const rings = [];
-for (let i = 0; i < 3; i++) {
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(7.5 + i * 2.1, 0.02, 8, 128),
-    new THREE.MeshBasicMaterial({ color: 0x11aa7f, transparent: true, opacity: 0.5 - i * 0.12 })
-  );
-  ring.position.copy(globe.position);
-  ring.rotation.x = Math.PI / 2 + (i - 1) * 0.28;
-  rings.push(ring);
-  dressing.add(ring);
+const faceLineMat = new THREE.LineBasicMaterial({ color: 0x35d0ba, transparent: true, opacity: 0.95 });
+{
+  const pts = [];
+  const pushPolyline = (line, sign) => {
+    for (let i = 0; i < line.length - 1; i++) {
+      pts.push(
+        sign * line[i][0] * FACE_SCALE, line[i][1] * FACE_SCALE, 0,
+        sign * line[i + 1][0] * FACE_SCALE, line[i + 1][1] * FACE_SCALE, 0
+      );
+    }
+  };
+  FACE_HALF.forEach((line) => { pushPolyline(line, 1); pushPolyline(line, -1); });
+  FACE_CENTER.forEach((line) => pushPolyline(line, 1));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  dressing.add(new THREE.LineSegments(geo, faceLineMat));
 }
-// dressing pivots around the globe centre, not the world origin
-// (clone first: globe itself is a child, so subtracting the live vector
-// would zero it for every child processed after it)
-const dressingPivot = globe.position.clone();
-dressing.position.copy(dressingPivot);
-dressing.children.forEach((child) => child.position.sub(dressingPivot));
+
+// dotted triangles behind the head — the tattoo's stippled shadow
+for (const sign of [-1, 1]) {
+  const tri = new THREE.BufferGeometry();
+  const a = [sign * 0.7 * FACE_SCALE, 0.9 * FACE_SCALE, -0.4];
+  const b = [sign * 1.7 * FACE_SCALE, -0.1 * FACE_SCALE, -0.4];
+  const c = [sign * 0.55 * FACE_SCALE, -0.65 * FACE_SCALE, -0.4];
+  const dots = [];
+  for (let i = 0; i < 90; i++) {
+    let u = Math.random(), v = Math.random();
+    if (u + v > 1) { u = 1 - u; v = 1 - v; }
+    dots.push(
+      a[0] + (b[0] - a[0]) * u + (c[0] - a[0]) * v,
+      a[1] + (b[1] - a[1]) * u + (c[1] - a[1]) * v,
+      -0.4
+    );
+  }
+  tri.setAttribute("position", new THREE.Float32BufferAttribute(dots, 3));
+  dressing.add(new THREE.Points(tri, new THREE.PointsMaterial({ color: 0x1a8a68, size: 0.045, transparent: true, opacity: 0.55 })));
+}
+
+// pupils — they follow the cursor
+const EYE_CENTER = { x: 0.49 * FACE_SCALE, y: 0.045 * FACE_SCALE };
+const pupilMat = new THREE.MeshBasicMaterial({ color: PHOS });
+const pupils = [-1, 1].map((sign) => {
+  const p = new THREE.Mesh(new THREE.CircleGeometry(0.075 * FACE_SCALE, 14), pupilMat);
+  p.position.set(sign * EYE_CENTER.x, EYE_CENTER.y, 0.02);
+  p.userData.homeX = sign * EYE_CENTER.x;
+  dressing.add(p);
+  return p;
+});
 
 // Floating data motes
 const moteCount = 700;
@@ -291,6 +351,13 @@ let cityGrowing = false;
 const cityColors = [];      // per-instance base colors, for hover restore
 const cityDummy = new THREE.Object3D();
 
+// reveal sweeps across weeks, oldest first — shared by towers and edges
+function grownHeight(i, growth) {
+  const week = Math.floor(i / CITY.days);
+  const local = THREE.MathUtils.clamp(growth * 1.7 - (week / CITY.weeks) * 0.7, 0, 1);
+  return cityMesh.userData.heights[i] * easeOutCubic(local);
+}
+
 function cityInstanceTransform(i, growth) {
   const { weeks, days, cell, gap } = CITY;
   const step = cell + gap;
@@ -298,11 +365,8 @@ function cityInstanceTransform(i, growth) {
   const originZ = (-(days - 1) / 2) * step;
   const week = Math.floor(i / days);
   const day = i % days;
-  // reveal sweeps across weeks, oldest first
-  const local = THREE.MathUtils.clamp(growth * 1.7 - (week / weeks) * 0.7, 0, 1);
-  const h = cityMesh.userData.heights[i] * easeOutCubic(local);
   cityDummy.position.set(originX + week * step, 0, originZ + day * step);
-  cityDummy.scale.set(1, Math.max(0.001, h), 1);
+  cityDummy.scale.set(1, Math.max(0.001, grownHeight(i, growth)), 1);
   cityDummy.updateMatrix();
   return cityDummy.matrix;
 }
@@ -311,6 +375,7 @@ function refreshCityMatrices() {
   const count = CITY.weeks * CITY.days;
   for (let i = 0; i < count; i++) cityMesh.setMatrixAt(i, cityInstanceTransform(i, cityGrow));
   cityMesh.instanceMatrix.needsUpdate = true;
+  updateCityEdges();
 }
 
 function buildCity(contributions) {
@@ -345,6 +410,8 @@ function buildCity(contributions) {
 function growCity() {
   if (!cityMesh || cityGrowing || cityGrow >= 1) return;
   cityGrowing = true;
+  createCityEdges();
+  tween({ dur: 0.5, update: (e) => { if (cityEdges) cityEdges.material.opacity = 0.85 * e; } });
   tween({
     dur: 2.2,
     update: (e) => { cityGrow = e; refreshCityMatrices(); },
@@ -352,30 +419,39 @@ function growCity() {
       cityGrowing = false;
       cityGrow = 1;
       refreshCityMatrices();
-      buildCityEdges();
     },
   });
 }
 
 // Dark edge wireframe over every tower: without it the high-activity ridge
 // blooms into one solid glow and the individual days disappear. One merged
-// LineSegments (12 edges x 364 towers) built once the city is fully grown.
+// LineSegments (12 edges x 364 towers) whose vertex buffer is rewritten in
+// step with the grow animation, so the edges rise with their towers.
 let cityEdges = null;
-function buildCityEdges() {
-  if (!cityMesh) return;
-  if (cityEdges) {
-    scene.remove(cityEdges);
-    cityEdges.geometry.dispose();
-    cityEdges.material.dispose();
-  }
+function createCityEdges() {
+  if (!cityMesh || cityEdges) return;
+  const count = CITY.weeks * CITY.days;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(count * 16 * 3), 3));
+  const mat = new THREE.LineBasicMaterial({ color: 0x02150e, transparent: true, opacity: 0 });
+  cityEdges = new THREE.LineSegments(geo, mat);
+  cityEdges.position.copy(cityMesh.position);
+  cityEdges.frustumCulled = false; // buffer starts flat; skip stale bounds
+  scene.add(cityEdges);
+  updateCityEdges();
+}
+
+function updateCityEdges() {
+  if (!cityEdges) return;
   const { weeks, days, cell, gap } = CITY;
   const step = cell + gap;
   const originX = (-(weeks - 1) / 2) * step;
   const originZ = (-(days - 1) / 2) * step;
-  const heights = cityMesh.userData.heights;
   const inflate = 0.006; // keep lines just off the faces to avoid z-fighting
   const half = cell / 2 + inflate;
-  const pts = [];
+  const arr = cityEdges.geometry.attributes.position.array;
+  let o = 0;
+  const put = (x, y, z) => { arr[o++] = x; arr[o++] = y; arr[o++] = z; };
   for (let i = 0; i < weeks * days; i++) {
     const week = Math.floor(i / days);
     const day = i % days;
@@ -383,21 +459,15 @@ function buildCityEdges() {
     const cz = originZ + day * step;
     const x0 = cx - half, x1 = cx + half;
     const z0 = cz - half, z1 = cz + half;
-    const y0 = 0.002, y1 = heights[i] + inflate;
+    const y0 = 0.002, y1 = grownHeight(i, cityGrow) + inflate;
     // top rectangle
-    pts.push(x0, y1, z0, x1, y1, z0,  x1, y1, z0, x1, y1, z1,
-             x1, y1, z1, x0, y1, z1,  x0, y1, z1, x0, y1, z0);
+    put(x0, y1, z0); put(x1, y1, z0);  put(x1, y1, z0); put(x1, y1, z1);
+    put(x1, y1, z1); put(x0, y1, z1);  put(x0, y1, z1); put(x0, y1, z0);
     // verticals
-    pts.push(x0, y0, z0, x0, y1, z0,  x1, y0, z0, x1, y1, z0,
-             x1, y0, z1, x1, y1, z1,  x0, y0, z1, x0, y1, z1);
+    put(x0, y0, z0); put(x0, y1, z0);  put(x1, y0, z0); put(x1, y1, z0);
+    put(x1, y0, z1); put(x1, y1, z1);  put(x0, y0, z1); put(x0, y1, z1);
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  const mat = new THREE.LineBasicMaterial({ color: 0x02150e, transparent: true, opacity: 0 });
-  cityEdges = new THREE.LineSegments(geo, mat);
-  cityEdges.position.copy(cityMesh.position);
-  scene.add(cityEdges);
-  tween({ dur: 0.8, update: (e) => { mat.opacity = 0.85 * e; } });
+  cityEdges.geometry.attributes.position.needsUpdate = true;
 }
 
 async function loadContributions() {
@@ -800,6 +870,19 @@ function glitchBurst(strength) {
 }
 setInterval(() => { if (Math.random() < 0.28) glitchBurst(0.3 + Math.random() * 0.4); }, 3400);
 
+// an occasional blink keeps the portrait alive
+setInterval(() => {
+  if (reduceMotion) return;
+  tween({
+    dur: 0.18,
+    ease: (k) => k,
+    update: (e, k) => {
+      const s = 1 - Math.sin(k * Math.PI) * 0.85;
+      pupils.forEach((p) => p.scale.set(1, s, 1));
+    },
+  });
+}, 4600);
+
 const nameEl = document.querySelector(".ident-name");
 setInterval(() => {
   if (reduceMotion) return;
@@ -855,7 +938,7 @@ function beginIntro() {
   // grid + motes fade in
   tween({ delay: 0.1, dur: 1.4, update: (e) => { grid.material.opacity = 0.5 * e; moteMat.opacity = 0.75 * e; } });
 
-  // network globe unfolds
+  // the portrait unfolds
   tween({ delay: 0.5, dur: 1.1, ease: easeOutBack, update: (e) => dressing.scale.setScalar(Math.max(0.001, e)) });
 
   // product screens power on, one after another
@@ -903,10 +986,16 @@ function frame() {
   camera.lookAt(lookCurrent);
 
   if (!reduceMotion) {
-    globe.rotation.y = t * 0.12;
-    globeCore.rotation.y = -t * 0.3;
-    globeCore.rotation.x = t * 0.17;
-    rings.forEach((r, i) => { r.rotation.z = t * (0.05 + i * 0.03); });
+    // the portrait turns toward the cursor; pupils lead the way
+    dressing.rotation.y += (mouse.x * 0.3 - dressing.rotation.y) * 0.06;
+    dressing.rotation.x += (-mouse.y * 0.16 - dressing.rotation.x) * 0.06;
+    dressing.position.y = 12.2 + Math.sin(t * 0.5) * 0.1;
+    pupils.forEach((p) => {
+      const tx = p.userData.homeX + mouse.x * 0.11 * FACE_SCALE;
+      const ty = EYE_CENTER.y + mouse.y * 0.055 * FACE_SCALE;
+      p.position.x += (tx - p.position.x) * 0.14;
+      p.position.y += (ty - p.position.y) * 0.14;
+    });
     motes.rotation.y = t * 0.008;
     panels.forEach((p, i) => {
       p.position.y = p.userData.baseY + Math.sin(t * 0.8 + i * 1.4) * 0.14;
