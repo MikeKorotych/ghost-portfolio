@@ -25,7 +25,7 @@ const LINKS = {
 const STATIONS = [
   { pos: new THREE.Vector3(0, 7.5, 34), look: new THREE.Vector3(0, 5, 0) },     // identity
   { pos: new THREE.Vector3(-1, 7, 16), look: new THREE.Vector3(0, 6.4, 0) },    // products
-  { pos: new THREE.Vector3(13, 16, 14), look: new THREE.Vector3(0, 0.6, -2) },  // activity — high diagonal over the city
+  { pos: new THREE.Vector3(19, 24, 22), look: new THREE.Vector3(0, 0.2, -2) },  // activity — high diagonal, whole city in frame
 ];
 const INTRO_POS = new THREE.Vector3(0, 30, 84);
 const INTRO_LOOK = new THREE.Vector3(0, 9, 0);
@@ -157,8 +157,11 @@ for (let i = 0; i < 3; i++) {
   dressing.add(ring);
 }
 // dressing pivots around the globe centre, not the world origin
-dressing.position.copy(globe.position);
-dressing.children.forEach((child) => child.position.sub(globe.position));
+// (clone first: globe itself is a child, so subtracting the live vector
+// would zero it for every child processed after it)
+const dressingPivot = globe.position.clone();
+dressing.position.copy(dressingPivot);
+dressing.children.forEach((child) => child.position.sub(dressingPivot));
 
 // Floating data motes
 const moteCount = 700;
@@ -421,8 +424,11 @@ const CRTShader = {
       col *= 0.97 + 0.03 * sin(uTime * 61.0);
 
       col = mix(col, col * vec3(0.87, 1.06, 0.97), 0.5);
-      float vig = smoothstep(0.95, 0.35, length(c));
-      col *= mix(0.62, 1.0, vig);
+      // aspect-corrected vignette: circular in screen space; the uv-space
+      // version turned into a bright horizontal band on wide monitors
+      vec2 cc = c * vec2(uRes.x / uRes.y, 1.0);
+      float vig = smoothstep(1.05, 0.45, length(cc));
+      col *= mix(0.72, 1.0, vig);
 
       col += (hash(uv * uRes + uTime) - 0.5) * 0.035;
 
@@ -525,6 +531,12 @@ addEventListener("mousemove", (e) => {
   mouse.y = -(e.clientY / innerHeight) * 2 + 1;
   pointer.copy(mouse);
   tipXY = { x: e.clientX, y: e.clientY };
+  // follow the cursor every frame, not on the raycast interval — otherwise
+  // the tooltip trails in visible steps
+  if (!tipEl.hidden) {
+    tipEl.style.left = `${tipXY.x}px`;
+    tipEl.style.top = `${tipXY.y}px`;
+  }
 });
 
 canvas.addEventListener("click", () => {
@@ -580,7 +592,6 @@ setInterval(() => {
   }
 
   if (towerHTML) showTip(towerHTML);
-  else if (panelHit && panelHit.object.userData.group.userData.on) showTip(`<span class="num">${panelHit.object.userData.group.userData.label}</span>`);
   else tipEl.hidden = true;
 
   canvas.style.cursor = panelHit && panelHit.object.userData.group.userData.on ? "pointer" : "crosshair";
