@@ -89,6 +89,10 @@ function stepTweens() {
 // ────────────────────────────────────────────────────────────────────────────
 
 const canvas = document.getElementById("scene");
+// The composited WebGL layer can differ subtly from DOM black on wide/P3
+// displays, which reads as a lighter band during boot. Keep the canvas
+// invisible until the boot screen is gone; one warm-up frame renders first.
+canvas.style.visibility = "hidden";
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -234,12 +238,17 @@ const panelSayful = holoPanel({ texture: "/panel-sayful.png", x: -4.6, url: LINK
 const panelBrain = holoPanel({ texture: "/panel-braintrainer.png", x: 4.6, url: LINKS.brain, label: "OPEN ▸ brain trainer" });
 scene.add(panelSayful, panelBrain);
 
-/** CRT power-on: a thin bright line snaps open into the full screen. */
+/** CRT power-on: a thin bright line snaps open into the full screen.
+ * Each call takes a fresh token; a later powerOn/powerOff supersedes any
+ * still-pending tween (otherwise the intro's delayed power-on can re-light
+ * screens the user already switched off by jumping to ACTIVITY early). */
 function powerOn(group, delay = 0) {
   group.userData.on = true;
+  const token = (group.userData.powerSeq = (group.userData.powerSeq ?? 0) + 1);
   tween({
     delay, dur: 0.55, ease: easeOutBack,
     update: (e, k) => {
+      if (group.userData.powerSeq !== token) return;
       group.scale.y = Math.max(0.001, e);
       const flicker = k < 0.75 ? 0.55 + 0.45 * Math.sin(k * 46) : 1;
       group.userData.screenMat.opacity = 0.92 * Math.min(1, k * 1.4) * flicker;
@@ -247,6 +256,7 @@ function powerOn(group, delay = 0) {
       group.userData.tickMat.opacity = 0.95 * k;
     },
     done: () => {
+      if (group.userData.powerSeq !== token) return;
       group.userData.screenMat.opacity = 0.92;
       group.scale.y = 1;
     },
@@ -256,9 +266,11 @@ function powerOn(group, delay = 0) {
 /** CRT power-off: collapse back to a scanline and go dark. */
 function powerOff(group, delay = 0) {
   group.userData.on = false;
+  const token = (group.userData.powerSeq = (group.userData.powerSeq ?? 0) + 1);
   tween({
     delay, dur: 0.3,
     update: (e) => {
+      if (group.userData.powerSeq !== token) return;
       group.scale.y = Math.max(0.001, 1 - e);
       group.userData.screenMat.opacity = 0.92 * (1 - e);
       group.userData.frameMat.opacity = 0.9 * (1 - e) * 0.4;
@@ -446,6 +458,25 @@ composer.addPass(new OutputPass());
 
 let station = 0;
 let hudReady = false;
+
+// Drag-to-orbit around the contribution city (ACTIVITY station only): tall
+// days occlude the row behind them from a fixed angle, so let the visitor
+// swing the camera. Spherical coords around the station's look-at point.
+const orbit = { theta: 0, phi: 0, radius: 1, active: false, dragging: false };
+function resetOrbitFromStation() {
+  const offset = STATIONS[2].pos.clone().sub(STATIONS[2].look);
+  const s = new THREE.Spherical().setFromVector3(offset);
+  orbit.radius = s.radius;
+  orbit.theta = s.theta;
+  orbit.phi = s.phi;
+}
+resetOrbitFromStation();
+function applyOrbit() {
+  const offset = new THREE.Vector3().setFromSpherical(
+    new THREE.Spherical(orbit.radius, orbit.phi, orbit.theta)
+  );
+  camTarget.copy(STATIONS[2].look).add(offset);
+}
 const camTarget = INTRO_POS.clone();
 const lookCurrent = INTRO_LOOK.clone();
 const lookTarget = INTRO_LOOK.clone();
@@ -486,6 +517,11 @@ function setStation(index, animateCard = true) {
   lookTarget.copy(STATIONS[station].look);
   document.querySelectorAll(".nav-item").forEach((b, i) => b.classList.toggle("active", i === station));
   document.body.classList.toggle("station-2", station === 2);
+  orbit.active = station === 2;
+  if (orbit.active) {
+    resetOrbitFromStation();
+    applyOrbit();
+  }
 
   if (animateCard) swapCard(station);
   else renderCard(station);
@@ -520,10 +556,41 @@ addEventListener("keydown", (e) => {
 let touchY = null;
 addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; }, { passive: true });
 addEventListener("touchend", (e) => {
-  if (touchY === null) return;
+  // on the ACTIVITY station a touch drag orbits the camera instead
+  if (touchY === null || orbit.active) { touchY = null; return; }
   const dy = touchY - e.changedTouches[0].clientY;
   if (Math.abs(dy) > 50) setStation(station + (dy > 0 ? 1 : -1));
   touchY = null;
+}, { passive: true });
+
+// ---- drag to orbit (mouse + touch) ----
+let dragLast = null;
+function orbitDragStart(x, y) {
+  if (!orbit.active) return;
+  orbit.dragging = true;
+  dragLast = { x, y };
+}
+function orbitDragMove(x, y) {
+  if (!orbit.dragging || !dragLast) return;
+  const dx = x - dragLast.x;
+  const dy = y - dragLast.y;
+  dragLast = { x, y };
+  orbit.theta -= dx * 0.005;
+  orbit.phi = THREE.MathUtils.clamp(orbit.phi - dy * 0.004, 0.28, 1.42);
+  applyOrbit();
+}
+function orbitDragEnd() {
+  orbit.dragging = false;
+  dragLast = null;
+}
+canvas.addEventListener("pointerdown", (e) => orbitDragStart(e.clientX, e.clientY));
+addEventListener("pointermove", (e) => orbitDragMove(e.clientX, e.clientY));
+addEventListener("pointerup", orbitDragEnd);
+addEventListener("pointercancel", orbitDragEnd);
+canvas.addEventListener("touchmove", (e) => {
+  if (orbit.dragging && e.touches.length === 1) {
+    orbitDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
 }, { passive: true });
 
 addEventListener("mousemove", (e) => {
@@ -594,7 +661,11 @@ setInterval(() => {
   if (towerHTML) showTip(towerHTML);
   else tipEl.hidden = true;
 
-  canvas.style.cursor = panelHit && panelHit.object.userData.group.userData.on ? "pointer" : "crosshair";
+  if (orbit.active) {
+    canvas.style.cursor = orbit.dragging ? "grabbing" : "grab";
+  } else {
+    canvas.style.cursor = panelHit && panelHit.object.userData.group.userData.on ? "pointer" : "crosshair";
+  }
 }, 90);
 
 let glitch = 0;
@@ -646,6 +717,10 @@ const bootLines = [
 })();
 
 function beginIntro() {
+  // warm the pipeline while still hidden, then reveal a clean first frame
+  composer.render();
+  canvas.style.visibility = "visible";
+
   // camera dive to station 0 (the frame-loop lerp does the easing)
   camTarget.copy(STATIONS[0].pos);
   lookTarget.copy(STATIONS[0].look);
@@ -689,7 +764,8 @@ function frame() {
   now = t;
   stepTweens();
 
-  const parallax = reduceMotion ? 0 : 1;
+  // parallax fights the orbit controls, so it rests on the ACTIVITY station
+  const parallax = reduceMotion || orbit.active ? 0 : 1;
   const px = camTarget.x + mouse.x * 1.6 * parallax;
   const py = camTarget.y + mouse.y * 0.9 * parallax;
   camera.position.x += (px - camera.position.x) * 0.045;
