@@ -332,7 +332,7 @@ function buildCity(contributions) {
 
   contributions.forEach((c, i) => {
     const day = i % days;
-    const glow = c.count === 0 ? 0.04 : 0.14 + 0.5 * Math.pow(c.count / maxCount, 0.75);
+    const glow = c.count === 0 ? 0.04 : 0.12 + 0.42 * Math.pow(c.count / maxCount, 0.75);
     color.copy(PHOS).multiplyScalar(glow).lerp(PHOS_SOFT, day / days / 3);
     cityColors.push(color.clone());
     mesh.setColorAt(i, color);
@@ -440,7 +440,10 @@ function fillActivityStats() {
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.42, 0.8, 0.3);
+// tighter radius + higher threshold: glow hugs the geometry instead of
+// smearing across neighbouring towers
+const BLOOM_BASE = 0.38;
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), BLOOM_BASE, 0.55, 0.36);
 composer.addPass(bloom);
 
 const CRTShader = {
@@ -913,7 +916,18 @@ function frame() {
       p.scale.z = s;
       if (p.userData.on && tweens.length === 0) p.scale.y = s;
     });
-    if (cityMesh) cityMesh.material.emissiveIntensity = 0.9 + Math.sin(t * 1.6) * 0.12;
+  }
+
+  // The closer the camera gets to the city, the more screen area its bright
+  // faces cover — unchecked, the bloom washes the edges out. Normalize by
+  // easing both the city's emissive level and the bloom strength with
+  // proximity, so a close-up ridge stays legible.
+  if (cityMesh) {
+    const cityDist = camera.position.distanceTo(cityMesh.position);
+    const proximity = THREE.MathUtils.clamp(THREE.MathUtils.mapLinear(cityDist, 12, 40, 0, 1), 0, 1);
+    const pulse = reduceMotion ? 0.9 : 0.9 + Math.sin(t * 1.6) * 0.12;
+    cityMesh.material.emissiveIntensity = pulse * (0.45 + 0.55 * proximity);
+    bloom.strength = BLOOM_BASE * (0.45 + 0.55 * proximity);
   }
 
   glitch = Math.max(0, glitch - dt * 2.2);
